@@ -1,5 +1,5 @@
 #using the official node js image
-FROM node:18-apline as builder
+FROM node:18-alpine 
 
 # setting up the workdirectory to /app
 WORKDIR /app
