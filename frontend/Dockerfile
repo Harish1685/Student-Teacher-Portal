@@ -18,14 +18,14 @@ ARG REACT_APP_API_BASE_URL
 ENV REACT_APP_API_BASE_URL=$REACT_APP_API_BASE_URL
 
 #building the application
-RUN npm run builde
+RUN npm run build
 
 # --------STAGE -2 (RUNNING THE APPLICATION)---------
 FROM nginx:1.25.3-alpine as runner
 
 #copying the build artifacts from previous stage
 COPY --from=builder /app/build /usr/share/nginx/html
-COPY --from=builder nginx-conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 #exposing the port
 EXPOSE 80

@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  database:
+    container_name: mysql
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    networks:
+      - my-network
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE:  my-db
+
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+    ports:
+     - "80:80"
+    networks:
+      - my-network
+    environment:
+      host: db
+      user: root
+      password: root
+      database: my-db
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+    networks:
+      - my-network
+    ports:
+      - "3500:3500"
+
+networks:
+  my-network:
+
+
+volumes:
+  mysql-data:
