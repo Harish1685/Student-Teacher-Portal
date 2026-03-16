@@ -12,17 +12,23 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE:  my-db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
   backend:
     container_name: backend
     build:
       context: ./backend
     ports:
-     - "80:80"
+     - "3500:3500"
     networks:
       - my-network
     environment:
-      host: db
+      host: database
       user: root
       password: root
       database: my-db
@@ -38,7 +44,7 @@ services:
     networks:
       - my-network
     ports:
-      - "3500:3500"
+      - "80:80"
     
     depends_on:
       backend:  
