@@ -15,6 +15,10 @@ COPY . .
 
 #exposing the port
 EXPOSE 3500
+
+# used NODE_ENV for better runtime optimization
+ENV NODE_ENV=production
+
 #command to run the application
 CMD [ "node" , "server.js" ]
 
