@@ -55,6 +55,7 @@ resource "aws_instance" "my_instance" {
   key_name = var.aws_key_name
   vpc_security_group_ids = [aws_security_group.my_security.id]
   subnet_id = var.aws_subnet_id
+  user_data = file("${path.module}/user_data.sh")
   
   root_block_device {
     volume_size = var.aws_volume_size
