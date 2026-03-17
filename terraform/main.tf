@@ -7,8 +7,8 @@ module "vpc" {
 module "ec2" {
   source = "./modules/ec2"
 
-  aws_ami_id = "ami-0df647611daaf315d"
-  aws_instance_type = "t3.medium"
+  aws_ami_id = data.aws_ami.ubuntu.id
+  aws_instance_type = "c7i-flex.large"
   aws_key_name = aws_key_pair.my_key.key_name
   aws_subnet_id = module.vpc.public_subnet_id
   aws_volume_size = 20
