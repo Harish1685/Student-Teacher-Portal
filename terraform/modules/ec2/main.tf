@@ -63,7 +63,7 @@ resource "aws_instance" "my_instance" {
   }
 
   tags = {
-    Name = "Dev"
+    Name = "production"
     description = "my instance"
   }
 }
