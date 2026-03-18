@@ -1,7 +1,9 @@
 name: Terraform-CICD
 
 on:
-  workflow_dispatch:   
+  #push:
+   # branches: [main]    if wanna trigger on pushing
+  workflow_dispatch:    # manual trigger  
 
 jobs:
   terraform:
