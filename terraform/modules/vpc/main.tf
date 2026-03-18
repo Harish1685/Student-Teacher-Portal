@@ -7,7 +7,7 @@ resource "aws_vpc" "my_vpc" {
   instance_tenancy = "default"
 
   tags = {
-    name = "my-vpc "
+    name = "my-vpc-production"
   }
   
 }
@@ -34,7 +34,7 @@ resource "aws_internet_gateway" "my_gateway" {
   vpc_id = aws_vpc.my_vpc.id
 
   tags = {
-    name = "internet_gateway"
+    name = "internet-gateway-production"
   }
 }
 
