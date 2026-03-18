@@ -64,6 +64,6 @@ resource "aws_instance" "my_instance" {
 
   tags = {
     Name = "production"
-    description = "my instance"
+    description = "my ec2 instance"
   }
 }
