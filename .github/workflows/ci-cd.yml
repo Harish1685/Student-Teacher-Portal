@@ -31,5 +31,11 @@ jobs:
     - name: Terraform Init
       run: terraform init
 
+    - name: Terraform plan  
+      run: terraform plan 
+
+
     - name: Terraform Apply
       run: terraform apply --auto-approve
+      env:
+        public-key: ${{ secrets.PUBLIC_KEY }}
