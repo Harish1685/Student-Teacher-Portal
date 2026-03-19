@@ -5,6 +5,9 @@ on:
    # branches: [main]    if wanna trigger on pushing
   workflow_dispatch:    # manual trigger  
 
+concurrency:
+      group: terraform
+      cancel-in-progress: false
 jobs:
   terraform:
     runs-on: ubuntu-latest
