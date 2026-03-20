@@ -1,10 +1,8 @@
 
 services:
-  my-sql:
-    container_name: mysql
+  database:
+    container_name: database
     image: mysql:8.0
-    ports:
-      - "3306:3306"
     networks:
       - my-network
     volumes:
@@ -33,7 +31,7 @@ services:
       DB_NAME: my-db
       DB_PORT: 3306
     depends_on:
-      my-sql:
+      database:
         condition: service_healthy
   frontend:
     container_name: frontend
