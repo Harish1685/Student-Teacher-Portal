@@ -47,6 +47,9 @@ jobs:
             cd ~/app
 
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USER }}
+          
+            docker compose down --remove-orphans
 
             docker compose pull
+            
             docker compose up -d
