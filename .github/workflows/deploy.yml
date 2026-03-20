@@ -20,12 +20,13 @@ jobs:
       - name: Build and Push Images
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $DOCKERHUB_USER/frontend:latest ./frontend
-          docker build -t $DOCKERHUB_USER/backend:latest ./backend
+          docker build -t $DOCKERHUB_USER/frontend:$IMAGE_TAG ./frontend
+          docker build -t $DOCKERHUB_USER/backend:$IMAGE_TAG ./backend
 
-          docker push $DOCKERHUB_USER/frontend:latest
-          docker push $DOCKERHUB_USER/backend:latest
+          docker push $DOCKERHUB_USER/frontend:$IMAGE_TAG
+          docker push $DOCKERHUB_USER/backend:$IMAGE_TAG
 
       - name: Copy docker-compose.yml
         uses: appleboy/scp-action@v0.1.7
@@ -47,6 +48,7 @@ jobs:
             cd ~/app
 
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USER }}
+            export IMAGE_TAG=${{ github-sha }}
           
             docker compose down --remove-orphans
 

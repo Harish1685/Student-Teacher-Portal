@@ -19,7 +19,7 @@ services:
 
   backend:
     container_name: backend
-    image: zorochan/backend:latest
+    image: $DOCKERHUB_USER/backend:${IMAGE_TAG}
     ports:
      - "3500:3500"
     networks:
@@ -35,7 +35,7 @@ services:
         condition: service_healthy
   frontend:
     container_name: frontend
-    image: zorochan/frontend:latest
+    image: ${DOCKERHUB_USER}/frontend:${IMAGE_TAGs}
     networks:
       - my-network
     ports:
