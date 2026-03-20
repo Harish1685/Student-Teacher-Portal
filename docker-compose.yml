@@ -33,7 +33,7 @@ services:
       DB_NAME: my-db
       DB_PORT: 3306
     depends_on:
-      database:
+      my-sql:
         condition: service_healthy
   frontend:
     container_name: frontend
