@@ -15,7 +15,7 @@ jobs:
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_PASS: ${{ secrets.DOCKERHUB_PASS }}
-        run: echo "DOCKERHUB_PASS" | docker login -u "DOCKERHUB_USER" --password-stdin
+        run: echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
 
       - name: Build and Push Images
         env:
@@ -46,7 +46,7 @@ jobs:
             mkdir -p ~/app
             cd ~/app
 
-            export DOCKER_USERNAME=${{ secrets.DOCKERHUB_USER }}
+            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USER }}
 
             docker compose pull
             docker compose up -d
