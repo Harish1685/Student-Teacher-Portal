@@ -43,7 +43,7 @@ jobs:
             mkdir -p ~/app
             cd ~/app
 
-            
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
 
             docker compose pull
             docker compose up -d
