@@ -13,13 +13,13 @@ jobs:
 
       - name: Docker Hub Login
         env:
-          DOCKER_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKER_PASS: ${{ secrets.DOCKERHUB_PASS }}
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_PASS: ${{ secrets.DOCKERHUB_PASS }}
         run: echo "DOCKERHUB_PASS" | docker login -u "DOCKERHUB_USER" --password-stdin
 
       - name: Build and Push Images
         env:
-          DOCKER_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
         run: |
           docker build -t $DOCKERHUB_USER/frontend:latest ./frontend
           docker build -t $DOCKERHUB_USER/backend:latest ./backend
