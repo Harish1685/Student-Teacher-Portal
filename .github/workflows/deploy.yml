@@ -48,7 +48,7 @@ jobs:
             cd ~/app
 
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USER }}
-            export IMAGE_TAG=${{ github-sha }}
+            export IMAGE_TAG=${{ github.sha }}
           
             docker compose down --remove-orphans
 
