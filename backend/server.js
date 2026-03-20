@@ -15,13 +15,13 @@ const connectWithRetry = async (retries = 10, delay = 3000) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const pool = await mysql.createPool({
-        host: process.env.host,
-        user: process.env.user,
-        password: process.env.password,
-        database: process.env.database,
-        connectionLimit: 10,
-        ssl: { rejectUnauthorized: false }
-      });
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        port: process.env.DB_PORT || 3306,
+        connectionLimit: 10
+});       
       console.log(`✅ Connected to MySQL (Attempt ${attempt})`);
       return pool;
     } catch (error) {
@@ -111,8 +111,8 @@ const ensureTables = async (db) => {
         return res.status(200).json({
           status: 'ok',
           database: 'connected',
-          host: process.env.host,
-          database_name: process.env.database,
+          host: process.env.DB_HOST,
+          database_name: process.env.DB_NAME,
           result: rows[0]
         });
 
