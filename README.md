@@ -129,19 +129,16 @@ If this works → AWS CLI is configured correctly ✅
 Now that the environment is ready, the next step is to clone the project repository
 
 ```
-https://github.com/Harish1685/Student-Teacher-Portal.git
+git clone https://github.com/Harish1685/Student-Teacher-Portal.git
 cd Student-Teacher-Portal
 ```
 
----
-
-## Step 3: Push Project to GitHub Repository
+## Step 3: Push Changes
 
 Before setting up CI/CD pipelines, your project must be available in a GitHub repository.
 
 ### Initialize Git
 ```
-git init
 git add .
 git commit -m "initial commit"
 ```
@@ -185,6 +182,7 @@ aws dynamodb create-table \
 #### ⚠️ Important
 
 These must be created before running terraform init
+
 
 ---
 
@@ -230,3 +228,155 @@ You should see
 id_ed25519
 id_ed25519.pub
 ```
+### Add SSH Public Key as GitHub Secret
+
+Instead of storing the key locally, we pass it securely through GitHub Actions.
+
+Add SSH Public Key as GitHub Secret
+
+Get your public key
+```
+cat ~/.ssh/id_ed25519.pub
+```
+### Add it to GitHub Secrets
+
+Go to your repository:
+
+Settings → Secrets and variables → Actions → New repository secret
+
+Add:
+```
+Name: PUBLIC_KEY
+Value: <paste your public key>
+```
+<img width="1225" height="394" alt="image" src="https://github.com/user-attachments/assets/d8a58788-7001-4954-a82d-ec739ef047fe" />
+
+### How this key is used
+
+The public key is passed to Terraform through the CI/CD pipeline.
+```
+TF_VAR_public_key → var.public_key
+```
+This allows Terraform to use the key when creating the EC2 instance without storing it in code.
+
+---
+
+## Step 6: Run Terraform Using GitHub Actions
+
+Instead of running Terraform manually, this project uses a pre-configured GitHub Actions workflow.
+
+Required Secrets
+
+Before running the pipeline, make sure these secrets are added in repository settings:
+```
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+PUBLIC_KEY
+AWS_REGION
+```
+<img width="1196" height="492" alt="image" src="https://github.com/user-attachments/assets/5cbcf89a-97a3-414b-9603-e83803e577c8" />
+
+
+### Run the Pipeline
+1. Go to the Actions tab in your repository
+2. Select Terraform-CICD
+3. Click Run workflow
+<img width="1841" height="852" alt="image" src="https://github.com/user-attachments/assets/97720fca-d23d-450a-b392-9726bdb8e815" />
+
+### What this pipeline does
+- Terraform Init → Connects to S3 backend
+- Terraform Plan → Previews infrastructure
+- Terraform Apply → Creates AWS resources
+
+### Output
+
+After successful execution:
+
+- EC2 instance is created
+- VPC and networking are configured
+- SSH access is enabled using your key
+
+### Note
+
+Ensure your EC2 security group allows:
+
+- Port 80 (HTTP)
+- Port 22 (SSH)
+
+Otherwise, the application will not be accessible from the browser.
+
+---
+
+## Step 7: Application CI/CD Pipeline (Build → Push → Deploy)
+
+Now that the infrastructure is ready, we will automate the application deployment using GitHub Actions.
+
+This pipeline will:
+
+Build Docker images → Push to Docker Hub → Deploy to EC2
+
+### Workflow Location
+
+The deployment pipeline is already defined in:
+```
+.github/workflows/deploy.yml
+```
+
+### Required Secrets
+
+Go to:
+
+GitHub → Settings → Secrets → Actions
+
+Add the following:
+- DOCKERHUB_USER → your Docker Hub username
+- DOCKERHUB_PASS → Docker Hub access token
+- EC2_HOST → public IP from Terraform output
+- EC2_USER → ubuntu
+- EC2_SSH_KEY → private key
+```
+cat ~/.ssh/id_ed25519
+```
+Copy entire content and paste as secret
+
+<img width="1196" height="881" alt="image" src="https://github.com/user-attachments/assets/6494b7cf-57e5-41d2-b876-57034aca0256" />
+
+---
+
+### Run the Deployment Pipeline
+1.Go to Actions tab
+2.Select Deploy workflow
+3.Click Run workflow
+
+<img width="1253" height="368" alt="image" src="https://github.com/user-attachments/assets/54209d40-33ce-4dc9-81d6-76f648f3ab4c" />
+
+### What this pipeline does
+1. Checkout code
+2. Login to Docker Hub
+3. Build frontend & backend images
+4. Push images to Docker Hub
+5. SSH into EC2
+6. Pull latest images
+7. Run docker compose
+
+## Access the Application
+
+Once deployment is complete, open:
+```
+http://<EC2_PUBLIC_IP>
+```
+Your application should be live
+
+## Conclusion
+
+In this project, we successfully built a complete end-to-end DevOps pipeline that automates both infrastructure provisioning and application deployment.
+
+Using Terraform, Docker, and GitHub Actions, we transformed a local application into a fully deployed system on AWS EC2.
+
+This setup enables:
+
+- One-click infrastructure creation
+- Automated application deployment
+- Consistent and reproducible environments
+
+This project demonstrates how modern DevOps practices can simplify and automate the entire deployment lifecycle.
