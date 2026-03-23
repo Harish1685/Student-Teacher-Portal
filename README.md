@@ -135,8 +135,35 @@ cd Student-Teacher-Portal
 
 ---
 
+## Step 3: Push Project to GitHub Repository
 
-## Step 3: Set Up Terraform Remote Backend (S3 + DynamoDB)
+Before setting up CI/CD pipelines, your project must be available in a GitHub repository.
+
+### Initialize Git
+```
+git init
+git add .
+git commit -m "initial commit"
+```
+### Create Repository on GitHub
+- Go to GitHub
+- Create a new repository
+- Do NOT initialize with README (since you already have code)
+
+### Connect Local Repo to GitHub
+```
+git remote add origin https://github.com/<your-username>/<repo-name>.git
+git branch -M main
+git push -u origin main
+```
+### Verify
+
+Go to your GitHub repo and confirm:
+
+- code is uploaded
+- folders are visible
+
+## Step 4: Set Up Terraform Remote Backend (S3 + DynamoDB)
 
 Before running Terraform, we need to configure a remote backend to store state and manage locking.
 ### Create S3 Bucket (State Storage)
@@ -162,7 +189,7 @@ These must be created before running terraform init
 ---
 
 
-## Step 4: Configure Terraform Backend & Create Infrastructure
+## Step 5: Configure Terraform Backend & Create Infrastructure
 
 Now that the remote backend (S3 + DynamoDB) is ready, we can initialize Terraform and provision the infrastructure
 
@@ -184,4 +211,22 @@ terraform {
     dynamodb_table = "my-dynamo-table"
   }
 }
+```
+### Generate SSH Key Pair
+
+This key will be used by Terraform to allow SSH access to the EC2 instance.
+Run:
+```
+ssh-keygen -t ed25519 -C "your-email@example.com"
+```
+Please Enter the default location
+
+### Verify keys
+```
+ls ~/.ssh
+```
+You should see
+```
+id_ed25519
+id_ed25519.pub
 ```
