@@ -1,16 +1,16 @@
-variable aws_ami_id {
+variable "aws_ami_id" {
     type = string
 }
 
-variable aws_instance_type {
+variable "aws_instance_type" {
     type = string
 }
 
-variable aws_key_name {
+variable "aws_key_name" {
     type = string
 }
 
-variable aws_volume_size {
+variable "aws_volume_size" {
     type = number
 }
 

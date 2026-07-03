@@ -11,7 +11,7 @@ systemctl start docker
 systemctl enable docker
 
 # Add ubuntu user to docker group
-usermod -aG docker ubuntu && newgrp docker
+usermod -aG docker ubuntu 
 
 # Install Docker Compose v2
 mkdir -p /usr/local/lib/docker/cli-plugins
