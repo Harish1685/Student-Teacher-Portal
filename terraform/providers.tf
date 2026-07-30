@@ -1,9 +1,14 @@
-provider "aws" {
-  region = "ap-south-1"
-}
-
-
 terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "6.30.0"
+    }
+  }
+
+
+
+
   backend "s3" {
     bucket         = "harish-1685-new-bucket"
     key            = "Student-Teacher-Portal/terraform.tfstate"
@@ -22,4 +27,9 @@ data "aws_ami" "ubuntu" {
     name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
+}
+
+
+provider "aws" {
+  region = "ap-south-1"
 }
