@@ -21,13 +21,6 @@ resource "aws_subnet" "public_subnet" {
   availability_zone = "ap-south-1a"
 }
 
-/*
-resource "aws_subnet" "private_subnet" {
-  vpc_id = aws_vpc.my_vpc.id
-  cidr_block = "10.0.2.0/24"
-  availability_zone = "ap-south-1b"
-}
-*/
 # igw (internet gateway)
 
 resource "aws_internet_gateway" "my_gateway" {
@@ -59,45 +52,4 @@ resource "aws_route_table_association" "public" {
   subnet_id = aws_subnet.public_subnet.id
   route_table_id = aws_route_table.public_route.id
 }
-
-# NAT gateway for private
-
-# Elastic ip for NAT gateway
-/*
-resource "aws_eip" "elastic_ip" {
-  domain = "vpc"
-}
-
-
-resource "aws_nat_gateway" "my_nat_gateway" {
-  allocation_id = aws_eip.elastic_ip.id
-  subnet_id = aws_subnet.public_subnet.id
-
-  tags = {
-    name = "my-nat"
-  }
-}
-
-# private route table
-
-resource "aws_route_table" "private_route" {
-  vpc_id = aws_vpc.my_vpc.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.my_nat_gateway.id
-  }
-  tags = {
-    name = "private-RT"
-  }
-}
-
-# route table assosiation (private)
-
-resource "aws_route_table_association" "private" {
-  subnet_id = aws_subnet.private_subnet.id
-  route_table_id = aws_route_table.private_route.id
-}
-
-*/
 

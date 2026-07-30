@@ -16,18 +16,3 @@ module "ec2" {
   aws_vpc_id = module.vpc.my_vpc_id
 
 }
-/*
-module "s3" {
-  source = "./modules/s3"
-  bucket_name = "harish-1685-new-bucket"
-}
-
-module "dynamodb" {
-  source = "./modules/dynamodb"
-  table_name = "my-dynamo-table"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key = "LockID"
-
-}
-
-*/
