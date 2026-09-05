@@ -1,6 +1,6 @@
 # 🚀 DevOps Project: Full-Stack Application Deployment on AWS using Terraform, Docker & GitHub Actions
 
-A hands-on DevOps project that automates infrastructure provisioning and application deployment using Terraform, Docker, and GitHub Actions  running on AWS EC2 with a fully containerized architecture.
+A hands-on DevOps project that provisions AWS infrastructure with Terraform and automates application deployment using Docker and GitHub Actions, running on AWS EC2 with a fully containerized architecture.
 
 ## Introduction
 
@@ -10,11 +10,17 @@ In this project, I built a complete end-to-end pipeline that takes a full-stack 
 
 ### Here’s what this setup includes:
 
-- Terraform to provision AWS infrastructure (VPC, EC2, networking)
+- Terraform to provision AWS infrastructure (VPC, EC2, networking) — run manually, see Step 6
 - Docker & Docker Compose to containerize and run the application
 - GitHub Actions to automate build, push, and deployment
 - Docker Hub to store application images
 - AWS EC2 as the deployment server
+
+### Where the line is drawn
+
+**Infrastructure is created by hand. Only the application deploys automatically.**
+
+The infrastructure is created once and rarely changes, so I run Terraform myself and read the plan before applying. The application code changes all the time, so that part is automated.
 
 ### Application Stack
 
@@ -160,36 +166,44 @@ Go to your GitHub repo and confirm:
 - code is uploaded
 - folders are visible
 
-## Step 4: Set Up Terraform Remote Backend (S3 + DynamoDB)
+## Step 4: Create the State Backend (Terraform Bootstrap)
 
-Before running Terraform, we need to configure a remote backend to store state and manage locking.
-### Create S3 Bucket (State Storage)
-```
-aws s3api create-bucket \
-  --bucket my-s3-new-buckett12 \
-  --region ap-south-1 \
-  --create-bucket-configuration LocationConstraint=ap-south-1
-```
-### Create DynamoDB Table (State Locking)
-```
-aws dynamodb create-table \
-  --table-name my-dynamo-table \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST \
-  --region ap-south-1
-```
-#### ⚠️ Important
+Terraform stores its state — a record of everything it has created — in a remote S3 bucket and locks it with a DynamoDB table. But that bucket has to exist **before** the main Terraform config can even run `terraform init`, because the main config stores its own state *inside* that bucket. A chicken-and-egg problem.
 
-These must be created before running terraform init
+The fix is a small, separate Terraform config in `terraform/bootstrap/`. Its only job is to create the S3 bucket + DynamoDB table once. That keeps the whole setup as code — no manual console clicks or one-off CLI commands for state.
+
+### Run the bootstrap
+```
+cd terraform/bootstrap
+terraform init
+terraform plan    # you should see the S3 bucket + DynamoDB table being ADDED
+terraform apply
+```
+
+### Why the backend can't live in the main config
+
+The main config stores its state in the S3 bucket, so it can't create that bucket itself — the bucket must exist first. `bootstrap` exists only to break that deadlock: it runs once with its own local state, then the main config takes over and stores its state remotely in the bucket.
+
+### How the Terraform is organized
+
+```
+terraform/
+├── bootstrap/          ← one-time: creates the state backend (S3 + DynamoDB)
+├── modules/            ← reusable building blocks: vpc, ec2, s3, dynamoDB
+├── main.tf             ← the real infrastructure (uses the modules)
+├── providers.tf        ← AWS provider + remote backend config
+├── keypair.tf          ← EC2 key pair created from your public key
+├── variables.tf        ← inputs (public key, SSH allowed IPs)
+├── outputs.tf          ← useful values (EC2 IP, VPC ID)
+└── terraform.tfvars.example   ← template for your real values (copy to terraform.tfvars)
 
 
 ---
 
 
-## Step 5: Configure Terraform Backend & Create Infrastructure
+## Step 5: Configure Terraform Backend & SSH Key
 
-Now that the remote backend (S3 + DynamoDB) is ready, we can initialize Terraform and provision the infrastructure
+Now that the remote backend (S3 + DynamoDB) is ready, we can point Terraform at it and prepare the SSH key it needs
 
 ---
 
@@ -197,22 +211,23 @@ Now that the remote backend (S3 + DynamoDB) is ready, we can initialize Terrafor
 ```
 cd terraform
 ```
-### Configure Backend
+### Confirm the Backend Config
 
-Open your backend configuration (providers.tf) and update it:
+The S3 backend is already wired up in `providers.tf`. Just check the names match what bootstrap created in Step 4:
 ```
 terraform {
   backend "s3" {
-    bucket         = "my-s3-new-buckett12"
-    key            = "terraform.tfstate"
+    bucket         = "harish-1685-new-bucket"
+    key            = "Student-Teacher-Portal/terraform.tfstate"
     region         = "ap-south-1"
     dynamodb_table = "my-dynamo-table"
+    encrypt        = true
   }
 }
 ```
 ### Generate SSH Key Pair
 
-This key will be used by Terraform to allow SSH access to the EC2 instance.
+This one key does two jobs: it gives **you** SSH access to the EC2 instance, and GitHub Actions uses it to deploy the app.
 Run:
 ```
 ssh-keygen -t ed25519 -C "your-email@example.com"
@@ -228,82 +243,86 @@ You should see
 id_ed25519
 id_ed25519.pub
 ```
-### Add SSH Public Key as GitHub Secret
+### Pass the Public Key to Terraform
 
-Instead of storing the key locally, we pass it securely through GitHub Actions.
-
-Add SSH Public Key as GitHub Secret
-
-Get your public key
+Terraform needs your **public** key to create the EC2 key pair. Since we run Terraform from our own machine, it goes in a `terraform.tfvars` file — which is gitignored, so it never reaches GitHub:
+```
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+```
+Print your public key:
 ```
 cat ~/.ssh/id_ed25519.pub
 ```
-### Add it to GitHub Secrets
-
-Go to your repository:
-
-Settings → Secrets and variables → Actions → New repository secret
-
-Add:
+Paste it into `terraform.tfvars` so the file reads:
 ```
-Name: PUBLIC_KEY
-Value: <paste your public key>
+public_key = "ssh-ed25519 AAAAC3Nza... your-email@example.com"
 ```
-<img width="1225" height="394" alt="image" src="https://github.com/user-attachments/assets/d8a58788-7001-4954-a82d-ec739ef047fe" />
 
-### How this key is used
-
-The public key is passed to Terraform through the CI/CD pipeline.
-```
-TF_VAR_public_key → var.public_key
-```
-This allows Terraform to use the key when creating the EC2 instance without storing it in code.
+> 🔑 **Public vs private key:** the **public** key (`.pub`) goes to Terraform here. The **private** key goes into GitHub Secrets in Step 7 so Actions can SSH in. Never mix these up — the private key is the one that must stay secret.
 
 ---
 
-## Step 6: Run Terraform Using GitHub Actions
+## Step 6: Create the Infrastructure (Manual Terraform)
 
-Instead of running Terraform manually, this project uses a pre-configured GitHub Actions workflow.
+Terraform runs **from your own machine**, not from a pipeline.
 
-Required Secrets
+> **Why not automate this?** I tried putting Terraform in a pipeline first, but a pipeline runs `apply` on every push with nobody checking the plan — and a wrong plan can delete the server or the database. Since the infrastructure is created only once, running it myself and reading the plan first is safer and simpler. The application deploy is the part that runs often, so that is the part I automated.
 
-Before running the pipeline, make sure these secrets are added in repository settings:
+### Initialize
 ```
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-PUBLIC_KEY
-AWS_REGION
+cd terraform
+terraform init
 ```
-<img width="1196" height="492" alt="image" src="https://github.com/user-attachments/assets/5cbcf89a-97a3-414b-9603-e83803e577c8" />
+This connects to the S3 backend and downloads the AWS provider.
 
+### Review the plan
+```
+terraform plan
+```
+Actually read it before continuing. You should see resources to **add**, and nothing to **destroy**.
 
-### Run the Pipeline
-1. Go to the Actions tab in your repository
-2. Select Terraform-CICD
-3. Click Run workflow
-<img width="1841" height="852" alt="image" src="https://github.com/user-attachments/assets/97720fca-d23d-450a-b392-9726bdb8e815" />
+### Apply
+```
+terraform apply
+```
+Type `yes` to confirm. Takes about 2 minutes.
 
-### What this pipeline does
-- Terraform Init → Connects to S3 backend
-- Terraform Plan → Previews infrastructure
-- Terraform Apply → Creates AWS resources
+### Get your server details
+```
+terraform output
+```
+```
+ec2_public_dns   = "ec2-13-234-56-78.ap-south-1.compute.amazonaws.com"
+ec2_public_ip    = "13.234.56.78"
+my_vpc_id        = "vpc-0abc123..."
+public_subnet_id = "subnet-0def456..."
+```
+Copy `ec2_public_ip` — this becomes your `EC2_HOST` secret in Step 7.
 
-### Output
+### Wait for the server to finish setting itself up
 
-After successful execution:
+The instance boots with a `user_data` script that installs Docker and Docker Compose. Give it a minute, then SSH in:
+```
+ssh -i ~/.ssh/id_ed25519 ubuntu@<EC2_PUBLIC_IP>
+```
+Once you're in, confirm it finished:
+```
+cat ~/setup.log        # should print: Setup complete
+docker --version
+docker compose version
+```
+If `setup.log` doesn't exist yet, `user_data` is still running — wait 30 seconds and check again.
 
-- EC2 instance is created
-- VPC and networking are configured
-- SSH access is enabled using your key
+> ⚠️ **Deploying before `user_data` finishes is the most common cause of a failed first deploy.** The SSH step succeeds, then `docker compose` isn't installed yet.
 
-### Note
+### What Terraform created
 
-Ensure your EC2 security group allows:
+- A VPC with a public subnet, internet gateway and route table
+- An EC2 instance (Ubuntu 22.04) with Docker + Docker Compose preinstalled
+- A security group allowing port 80 (HTTP), 443 (HTTPS) and 22 (SSH)
 
-- Port 80 (HTTP)
-- Port 22 (SSH)
-
-Otherwise, the application will not be accessible from the browser.
+Port 3500 is not opened in the security group, so the backend cannot be reached from the internet. Nginx talks to it inside the Docker network instead.
 
 ---
 
@@ -331,13 +350,15 @@ GitHub → Settings → Secrets → Actions
 Add the following:
 - DOCKERHUB_USER → your Docker Hub username
 - DOCKERHUB_PASS → Docker Hub access token
-- EC2_HOST → public IP from Terraform output
+- EC2_HOST → public IP from `terraform output`
 - EC2_USER → ubuntu
-- EC2_SSH_KEY → private key
+- EC2_SSH_KEY → **private** key
 ```
 cat ~/.ssh/id_ed25519
 ```
 Copy entire content and paste as secret
+
+> ℹ️ No AWS keys are needed here. This pipeline only builds images and connects to a server that already exists.
 
 <img width="1196" height="881" alt="image" src="https://github.com/user-attachments/assets/6494b7cf-57e5-41d2-b876-57034aca0256" />
 
@@ -355,9 +376,16 @@ Copy entire content and paste as secret
 2. Login to Docker Hub
 3. Build frontend & backend images
 4. Push images to Docker Hub
-5. SSH into EC2
-6. Pull latest images
-7. Run docker compose
+5. Copy `docker-compose.yml` to the server
+6. SSH into EC2 and pull the new images
+7. Start the containers with `docker compose up -d`
+8. Check that the app actually responds
+
+Two things I learned while building this:
+
+**Images are tagged with the commit SHA instead of `latest`.** That way I always know exactly which build is running on the server.
+
+**The image names are saved in a `~/app/.env` file on the server.** Docker Compose reads `.env` automatically. I first used `export` inside the SSH step, which worked for that one step, but the variables vanished when the session closed — so later, when I SSHed in myself to run `docker compose logs`, Compose warned that the image name was not set.
 
 ## Access the Application
 
@@ -367,16 +395,110 @@ http://<EC2_PUBLIC_IP>
 ```
 Your application should be live
 
+---
+
+## Step 8: Verifying and Debugging a Deployment
+
+When something looks wrong, SSH in and work through these in order.
+
+```
+ssh -i ~/.ssh/id_ed25519 ubuntu@<EC2_PUBLIC_IP>
+cd ~/app
+```
+
+### Are all three containers up and healthy?
+```
+docker compose ps
+```
+All three should say `Up`, and `backend` / `database` should say `(healthy)`.
+
+### Check the logs of whatever isn't
+```
+docker compose logs backend
+docker compose logs database
+docker compose logs frontend
+```
+
+### Test each layer from the inside out
+
+This is the useful trick — test the backend directly first, then through nginx. Whichever one fails tells you where the problem is.
+```
+curl localhost:3500/health          # is the backend alive?
+curl localhost:3500/health/db       # can it reach MySQL?
+curl localhost/                     # is nginx serving the React app?
+curl localhost/api/student          # does the proxy reach the backend?
+```
+
+### Common failures
+
+| What you see | What it means |
+|---|---|
+| `docker: command not found` during deploy | `user_data` hadn't finished. Wait a minute, re-run the workflow |
+| backend restarting in a loop | MySQL isn't reachable. Check `docker compose logs database` |
+| Site loads, lists are empty, browser console shows 502 | nginx can't reach the backend. Check `docker compose ps backend` |
+| `manifest unknown` on pull | Image tag doesn't exist on Docker Hub. Check the build step actually pushed |
+| `variable is not set` warning from compose | `~/app/.env` is missing. Re-run the deploy workflow |
+| Nothing running after a reboot | Should be fixed by `restart: unless-stopped`. Check `systemctl is-enabled docker` |
+
+### Restarting by hand
+
+Because the settings are in `~/app/.env`, you can run Compose directly on the server:
+```
+cd ~/app
+docker compose restart backend     # restart one service
+docker compose up -d               # bring everything back up
+docker compose logs -f backend     # follow logs live
+```
+
+---
+
+## Step 9: Tearing It All Down
+
+An EC2 instance left running costs money. When you're done:
+
+### Destroy the infrastructure
+```
+cd terraform
+terraform destroy
+```
+Type `yes`. This removes the EC2 instance, VPC, subnet, gateway and security group.
+
+### Remove the backend resources (optional)
+
+The state backend is removed by the same `bootstrap` config that created it — run this **after** the `terraform destroy` above:
+```
+cd terraform/bootstrap
+terraform destroy
+```
+
+If it refuses to delete the S3 bucket because it still holds the state file from the main config, empty it first, then destroy again:
+```
+aws s3 rm s3://harish-1685-new-bucket --recursive
+cd terraform/bootstrap
+terraform destroy
+```
+
+### Verify nothing is left running
+```
+aws ec2 describe-instances \
+  --filters "Name=instance-state-name,Values=running" \
+  --query "Reservations[].Instances[].[InstanceId,InstanceType]" \
+  --region ap-south-1
+```
+
+---
+
 ## Conclusion
 
-In this project, we successfully built a complete end-to-end DevOps pipeline that automates both infrastructure provisioning and application deployment.
+In this project, we built a complete deployment setup for a full-stack application on AWS.
 
 Using Terraform, Docker, and GitHub Actions, we transformed a local application into a fully deployed system on AWS EC2.
 
 This setup enables:
 
-- One-click infrastructure creation
-- Automated application deployment
-- Consistent and reproducible environments
+- Reproducible infrastructure defined as code
+- Automated application deployment on every push to `main`
+- Deploys that fail loudly instead of silently going green
+- Containers that survive crashes and reboots on their own
 
-This project demonstrates how modern DevOps practices can simplify and automate the entire deployment lifecycle.
+This project demonstrates how modern DevOps practices can simplify and automate the deployment lifecycle — and, just as importantly, where drawing the line at automation is the right engineering call.
