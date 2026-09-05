@@ -3,6 +3,7 @@ services:
   database:
     container_name: database
     image: mysql:8.0
+    restart: unless-stopped
     networks:
       - my-network
     volumes:
@@ -20,6 +21,7 @@ services:
   backend:
     container_name: backend
     image: ${DOCKERHUB_USER}/backend:${IMAGE_TAG}
+    restart: unless-stopped
     ports:
      - "3500:3500"
     networks:
@@ -30,19 +32,27 @@ services:
       DB_PASSWORD: root
       DB_NAME: my-db
       DB_PORT: 3306
+    # docker keeps asking /health until it answers, so we know the app is really ready
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3500/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     depends_on:
       database:
         condition: service_healthy
   frontend:
     container_name: frontend
     image: ${DOCKERHUB_USER}/frontend:${IMAGE_TAG}
+    restart: unless-stopped
     networks:
       - my-network
     ports:
       - "80:80"
-    
+
     depends_on:
-      backend:  
+      backend:
         condition: service_started
 
     environment:

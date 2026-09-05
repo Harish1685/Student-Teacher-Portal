@@ -13,19 +13,27 @@ let db;
 // 🔁 MySQL Connection with Retry Logic
 const connectWithRetry = async (retries = 10, delay = 3000) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
+    let pool;
     try {
-      const pool = await mysql.createPool({
+      pool = mysql.createPool({
         host: process.env.DB_HOST,
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME,
         port: process.env.DB_PORT || 3306,
         connectionLimit: 10
-});       
+      });
+
+      // createPool never opens a socket on its own, so it can't fail here.
+      // Run a real query to prove the database is actually reachable -
+      // otherwise every attempt "succeeds" and the retry below is useless.
+      await pool.query('SELECT 1');
+
       console.log(`✅ Connected to MySQL (Attempt ${attempt})`);
       return pool;
     } catch (error) {
       console.error(`❌ MySQL connection failed (Attempt ${attempt}/${retries}):`, error.message);
+      if (pool) await pool.end().catch(() => {});
       if (attempt === retries) throw error;
       console.log(`Retrying in ${delay / 1000}s...`);
       await new Promise(res => setTimeout(res, delay));

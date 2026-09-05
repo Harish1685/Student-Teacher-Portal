@@ -5,7 +5,7 @@ FROM node:18-alpine as builder
 WORKDIR /app
 
 # copying the dependencies first
-COPY package*json ./
+COPY package*.json ./
 
 # installing the dependencies
 RUN npm install
