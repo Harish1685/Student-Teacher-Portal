@@ -24,16 +24,8 @@ resource "aws_security_group" "my_security" {
     from_port = 22
     to_port = 22
     protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.aws_ssh_cidr_blocks
     description = "to open ssh access"
-  }
-
-  ingress {
-    from_port = 8000
-    to_port = 8000
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "to open http access for my app"
   }
 
   egress {

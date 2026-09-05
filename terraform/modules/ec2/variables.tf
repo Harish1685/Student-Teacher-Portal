@@ -25,3 +25,9 @@ variable "aws_subnet_id" {
 variable "aws_vpc_id" {
   type = string
 }
+
+variable "aws_ssh_cidr_blocks" {
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+  description = "who is allowed to SSH in"
+}

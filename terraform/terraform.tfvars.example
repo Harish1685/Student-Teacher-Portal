@@ -1,0 +1,9 @@
+# copy this file to terraform.tfvars and paste your own public key
+# generate one with:  ssh-keygen -t ed25519 -C "your-email@example.com"
+# then read it with:  cat ~/.ssh/id_ed25519.pub
+
+public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... your-email@example.com"
+
+# optional: leave this out and SSH is open to the whole internet.
+# find your IP with:  curl https://checkip.amazonaws.com
+# ssh_cidr_blocks = ["1.2.3.4/32"]

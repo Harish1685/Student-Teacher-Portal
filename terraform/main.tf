@@ -14,5 +14,6 @@ module "ec2" {
   aws_volume_size = 20
   aws_volume_type = "gp3"
   aws_vpc_id = module.vpc.my_vpc_id
+  aws_ssh_cidr_blocks = var.ssh_cidr_blocks
 
 }

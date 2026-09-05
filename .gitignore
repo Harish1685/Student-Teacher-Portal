@@ -26,5 +26,6 @@ node_modules
 *.tfstate.backup
 .terraform/
 .terraform.lock.hcl
+terraform.tfvars
 
 .env
